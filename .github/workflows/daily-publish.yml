@@ -1,12 +1,8 @@
 name: Daily publish 3 from leetcode-backup
-
 on:
-  schedule:
-    - cron: "0 13 * * *"
+  schedule: [{ cron: "0 13 * * *" }]
   workflow_dispatch:
-
-permissions:
-  contents: write
+permissions: { contents: write }
 
 jobs:
   publish:
@@ -20,9 +16,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Ensure dirs and manifest
+      - name: Manifest
         run: |
-          mkdir -p published
           touch .published_hashes.txt
 
       - name: Checkout source (leetcode-backup)
@@ -33,7 +28,7 @@ jobs:
           path: src
           fetch-depth: 1
 
-      - name: Publish up to 3 unseen files
+      - name: Publish up to 3 unseen files to ROOT
         shell: bash
         run: |
           set -euo pipefail
@@ -42,21 +37,26 @@ jobs:
           for f in "${files[@]}"; do
             h=$(sha256sum "$f" | awk '{print $1}')
             grep -Fxq "$h" .published_hashes.txt && continue
-            rel="${f#src/}"
-            dst="published/$rel"
+
+            rel="${f#src/}"        # keep subfolders if any
+            dst="$rel"
             mkdir -p "$(dirname "$dst")"
-            [[ -f "$dst" ]] && {
-              b="$(basename "$dst")"; d="$(dirname "$dst")"; n="${b%.*}"; e="${b##*.}"
+
+            if [[ -f "$dst" ]]; then
+              b="$(basename "$dst")"; d="$(dirname "$dst")"
+              n="${b%.*}"; e="${b##*.}"
               [[ "$e" == "$b" ]] && dst="$d/${n}_dup_$(date +%s)" || dst="$d/${n}_dup_$(date +%s).$e"
-            }
+            fi
+
             cp -n "$f" "$dst"
             echo "$h" >> .published_hashes.txt
             git add .published_hashes.txt "$dst"
             (( ++moved >= 3 )) && break
           done
+
           if [[ $moved -gt 0 ]]; then
-            git commit -m "Daily publish: $moved file(s) from leetcode-backup"
+            git commit -m "Daily publish to root: $moved file(s) from leetcode-backup"
             git push
           else
-            echo "No new files to publish."
+            echo "No new files."
           fi
