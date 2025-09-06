@@ -38,7 +38,7 @@ jobs:
             h=$(sha256sum "$f" | awk '{print $1}')
             grep -Fxq "$h" .published_hashes.txt && continue
 
-            rel="${f#src/}"        # keep subfolders if any
+            rel="${f#src/}"
             dst="$rel"
             mkdir -p "$(dirname "$dst")"
 
@@ -55,7 +55,7 @@ jobs:
           done
 
           if [[ $moved -gt 0 ]]; then
-            git commit -m "Daily publish to root: $moved file(s) from leetcode-backup"
+            git commit -m "new leet code solved"
             git push
           else
             echo "No new files."
